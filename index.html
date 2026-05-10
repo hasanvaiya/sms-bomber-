@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEON SHADOW | OTP BOMBER</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    body {
+      background: radial-gradient(circle at center, #0f172a, #000000);
+      font-family: 'Courier New', monospace;
+    }
+    .neon-text {
+      text-shadow: 0 0 10px #22ff88, 0 0 20px #22ff88, 0 0 40px #22ff88;
+    }
+    .glass {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(34, 255, 136, 0.3);
+    }
+    .glow-green:hover {
+      box-shadow: 0 0 25px #22ff88;
+    }
+  </style>
+</head>
+<body class="text-green-400 min-h-screen">
+
+  <div class="max-w-6xl mx-auto p-6">
+    <div class="text-center mb-10">
+      <h1 class="text-6xl font-bold neon-text">NEON SHADOW</h1>
+      <p class="text-red-500 text-2xl tracking-widest">OTP BOMBER v2.5</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Control Panel -->
+      <div class="lg:col-span-2 glass rounded-3xl p-8">
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+          <i class="fas fa-bolt"></i> CONTROL PANEL
+        </h2>
+
+        <select id="service" onchange="loadService()" 
+                class="w-full p-5 bg-black border border-green-500 rounded-2xl text-lg mb-5">
+          <option value="">── SELECT SERVICE ──</option>
+        </select>
+
+        <input id="number" type="text" placeholder="017XXXXXXXX" 
+               class="w-full p-5 bg-black border border-green-500 rounded-2xl text-xl mb-5">
+
+        <textarea id="bodyTemplate" rows="4" class="w-full p-5 bg-black border border-green-500 rounded-2xl font-mono mb-5"></textarea>
+
+        <div class="grid grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm mb-2">INTERVAL (Seconds)</label>
+            <input id="interval" type="number" value="5" min="3" 
+                   class="w-full p-5 bg-black border border-green-500 rounded-2xl">
+          </div>
+          <div>
+            <label class="block text-sm mb-2">MAX REQUESTS (0 = Unlimited)</label>
+            <input id="maxRequests" type="number" value="0" min="0" 
+                   class="w-full p-5 bg-black border border-green-500 rounded-2xl">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-6 mt-10">
+          <button onclick="startAttack()" 
+                  class="glow-green bg-green-600 hover:bg-green-500 py-7 rounded-2xl text-2xl font-bold">
+            <i class="fas fa-play"></i> START ATTACK
+          </button>
+          <button onclick="stopAttack()" 
+                  class="bg-red-600 hover:bg-red-500 py-7 rounded-2xl text-2xl font-bold">
+            <i class="fas fa-stop"></i> STOP
+          </button>
+        </div>
+      </div>
+
+      <!-- Status & Log -->
+      <div class="space-y-6">
+        <div class="glass rounded-3xl p-8 text-center">
+          <div id="status" class="text-2xl font-bold min-h-[70px]"></div>
+          <div id="counter" class="text-4xl font-bold text-yellow-400 mt-4"></div>
+        </div>
+
+        <div id="log" class="glass rounded-3xl p-6 h-[480px] overflow-auto text-sm font-mono leading-relaxed"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let services = {};
+    let intervalId = null;
+    let count = 0;
+
+    async function loadServices() {
+      const res = await fetch('/services');
+      const data = await res.json();
+      
+      const select = document.getElementById('service');
+      select.innerHTML = '<option value="">── SELECT SERVICE ──</option>';
+      
+      data.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+      });
+    }
+
+    async function loadService() {
+      const name = document.getElementById('service').value;
+      if (!name) return;
+      
+      const res = await fetch('/services');
+      const list = await res.json();
+      // Note: In real backend we can send full service data, but for simplicity we use local data
+      console.log("Selected:", name);
+    }
+
+    function log(msg, color = "text-green-400") {
+      const logDiv = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      logDiv.innerHTML += `<span class="${color}">[${time}] ${msg}</span><br>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    async function startAttack() {
+      const number = document.getElementById('number').value.trim();
+      const serviceName = document.getElementById('service').value;
+      const intervalMs = parseInt(document.getElementById('interval').value) * 1000;
+      const maxRequests = parseInt(document.getElementById('maxRequests').value) || 0;
+
+      if (!number || !serviceName) {
+        alert("নাম্বার এবং সার্ভিস সিলেক্ট করুন");
+        return;
+      }
+
+      const res = await fetch('/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number, serviceName, intervalMs, maxRequests })
+      });
+
+      const data = await res.json();
+
+      if (data.status === "started") {
+        count = 0;
+        document.getElementById('counter').textContent = "REQUESTS SENT: 0";
+        document.getElementById('status').innerHTML = `<span class="text-green-400">● ATTACK RUNNING ON ${number}</span>`;
+        log(`🚀 ATTACK STARTED → ${number} (${serviceName})`, "text-yellow-400");
+      }
+    }
+
+    async function stopAttack() {
+      const number = document.getElementById('number').value.trim();
+      if (!number) return;
+
+      await fetch('/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number })
+      });
+
+      if (intervalId) clearInterval(intervalId);
+      document.getElementById('status').innerHTML = `<span class="text-red-500">● ATTACK STOPPED</span>`;
+      log("⛔ ATTACK STOPPED BY USER", "text-red-400");
+    }
+
+    window.onload = loadServices;
+  </script>
+</body>
+</html>
