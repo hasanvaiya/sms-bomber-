@@ -1,0 +1,14 @@
+{
+  "name": "neon-shadow-otp",
+  "version": "2.5.0",
+  "description": "Premium OTP Bomber Tool",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "axios": "^1.7.2",
+    "cors": "^2.8.5"
+  }
+}
